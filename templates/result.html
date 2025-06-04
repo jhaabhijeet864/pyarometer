@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Love Predictor - Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/result.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Love Predictor</h1>
+        
+        <div class="results-container" style="display: block;">
+            <h2>Love Compatibility Results</h2>
+            
+            <div class="names-display">
+                <span>{{ name1 }}</span>
+                <span class="heart">❤️</span>
+                <span>{{ name2 }}</span>
+            </div>
+            
+            <div class="meter-container">
+                <div class="meter">
+                    <div class="meter-fill" style="width: {{ compatibility }}%"></div>
+                </div>
+                <div class="percentage">
+                    <span id="compatibilityResult">{{ compatibility }}</span>%
+                </div>
+            </div>
+            
+            <p class="compatibility-message">{{ message }}</p>
+            
+            <a href="/" class="try-again-btn">Try Another Couple</a>
+        </div>
+    </div>
+    
+    <script>
+        // Simple animation for counting up to the result
+        document.addEventListener('DOMContentLoaded', function() {
+            const resultElement = document.getElementById('compatibilityResult');
+            const targetValue = {{ compatibility }};
+            let currentValue = 0;
+            
+            const interval = setInterval(() => {
+                if (currentValue >= targetValue) {
+                    clearInterval(interval);
+                    resultElement.textContent = targetValue; // Ensure final value is exact
+                    return;
+                }
+                resultElement.textContent = currentValue;
+                currentValue++;
+            }, 20);
+            
+            // Force the meter fill to animate
+            document.querySelector('.meter-fill').style.transition = 'width 1.5s ease-in-out';
+            document.querySelector('.meter-fill').style.width = '{{ compatibility }}%';
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Love Predictor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Love Predictor</h1>
+        
+        <form action="/calculate" method="post" class="input-container">
+            <input type="text" name="name1" class="name-input" placeholder="Enter first name" required>
+            <input type="text" name="name2" class="name-input" placeholder="Enter second name" required>
+            <button type="submit" class="check-btn">Check Compatibility</button>
+        </form>
+        
+        {% if error %}
+        <div class="error-container">
+            <p>{{ error }}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        const API_URL = '/api/compatibility';  // Not an absolute URL
+    </script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
