@@ -71,10 +71,12 @@ This project combines the magic of Python 🐍, Flask 🌐, and MongoDB 🍃 to 
 ## 🎨 Screenshots
 
 ### Home Page
-![Home Page](https://via.placeholder.com/500x300.png?text=Home+Page)
+![image](https://github.com/user-attachments/assets/cf9ed47c-e527-450a-8e0d-b1bb54e0f4bc)
+
 
 ### Results Page
-![Results Page](https://via.placeholder.com/500x300.png?text=Results+Page)
+![image](https://github.com/user-attachments/assets/57a5426b-dee1-43e5-b894-7d38a9a55740)
+
 
 ---
 
