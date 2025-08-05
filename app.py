@@ -1,31 +1,51 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, request, jsonify, render_template, current_app
 from pymongo import MongoClient
-from pymongo.server_api import ServerApi
-from dotenv import load_dotenv
+import logging
+import traceback
 import os
-from compatibility import calculate_compatibility
 from datetime import datetime
+import json
+from compatibility import calculate_compatibility
+from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
 
-# MongoDB Connection
-mongo_uri = os.environ.get("MONGODB_URI")
-client = MongoClient(mongo_uri, server_api=ServerApi('1'))
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("app.log"),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
-try:
-    # Send a ping to confirm connection
-    client.admin.command('ping')
-    print("✅ Connected to MongoDB!")
-    db = client.love_predictor
-except Exception as e:
-    print("❌ MongoDB connection error:", e)
+# MongoDB connection function with error handling
+def get_mongo_client():
+    try:
+        mongo_uri = os.environ.get("MONGODB_URI", "mongodb://localhost:27017/")
+        client = MongoClient(mongo_uri)
+        # Test the connection
+        client.admin.command('ping')
+        return client
+    except Exception as e:
+        logger.error(f"Failed to connect to MongoDB: {str(e)}")
+        raise
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    try:
+        return render_template('index.html')
+    except Exception as e:
+        logger.error(f"Error in index route: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({
+            "status": "error",
+            "message": "Failed to load the application. Please try again later."
+        }), 500
 
 @app.route('/calculate', methods=['POST'])
 def calculate():
@@ -47,7 +67,7 @@ def calculate():
             'created_at': datetime.utcnow()
         })
     except Exception as e:
-        print(f"Database error: {e}")
+        logger.error(f"Database error: {e}")
         # Continue even if DB storage fails
     
     # Generate a message based on compatibility score
@@ -80,7 +100,7 @@ def api_compatibility():
             'created_at': datetime.utcnow()
         })
     except Exception as e:
-        print(f"Database error: {e}")
+        logger.error(f"Database error: {e}")
     
     return jsonify({"compatibility": compatibility})
 
@@ -98,6 +118,64 @@ def get_compatibility_message(percentage):
     else:
         return "Maybe just be friends? The stars aren't aligned for romance. 🌟"
 
+# Add global error handler
+@app.errorhandler(Exception)
+def handle_exception(e):
+    # Log the exception
+    tb = traceback.format_exc()
+    logger.error(f"Unhandled exception: {str(e)}\n{tb}")
+    
+    # Return a user-friendly error response
+    return jsonify({
+        "error": "An unexpected error occurred. Our team has been notified.",
+        "status": "error"
+    }), 500
+
+# Update route handlers with try/except blocks
+@app.route('/submit', methods=['POST'])
+def submit():
+    try:
+        data = request.form.to_dict()
+        timestamp = datetime.now().isoformat()
+        data['timestamp'] = timestamp
+        
+        logger.info(f"Received submission: {json.dumps(data, default=str)}")
+        
+        client = get_mongo_client()
+        db = client.pyarometer
+        result = db.responses.insert_one(data)
+        
+        logger.info(f"Successfully stored submission with ID: {result.inserted_id}")
+        client.close()
+        
+        return jsonify({"status": "success", "message": "Data submitted successfully"})
+    
+    except Exception as e:
+        logger.error(f"Error in /submit route: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({
+            "status": "error",
+            "message": "Failed to process your submission. Please try again later."
+        }), 500
+
+@app.route('/results')
+def results():
+    try:
+        client = get_mongo_client()
+        db = client.pyarometer
+        responses = list(db.responses.find({}, {'_id': 0}))
+        client.close()
+        
+        logger.info(f"Successfully retrieved {len(responses)} responses")
+        return jsonify(responses)
+    
+    except Exception as e:
+        logger.error(f"Error in /results route: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({
+            "status": "error", 
+            "message": "Failed to retrieve results. Please try again later."
+        }), 500
+
 # For local development
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    logger.info("Starting Flask application")
+    app.run(debug=True, host='0.0.0.0')
